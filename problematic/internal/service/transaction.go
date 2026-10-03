@@ -1,8 +1,9 @@
-package transaction
+package service
 
 import (
 	"context"
 	"encoding/json"
+	"outbox-pattern-go/internal/transaction"
 
 	"github.com/IBM/sarama"
 )
@@ -12,12 +13,12 @@ var (
 	PARTITION      = 0
 )
 
-func CreateTransactionCreatedEvent(ctx context.Context, producer sarama.SyncProducer, transaction Transaction) error {
-	event := &TransactionCreatedEvent{
-		TransactionID: transaction.ID,
-		Sender:        transaction.Sender,
-		Recipient:     transaction.Recipient,
-		Amount:        transaction.Amount,
+func CreateTransactionCreatedEvent(ctx context.Context, producer sarama.SyncProducer, t transaction.Transaction) error {
+	event := &transaction.TransactionCreatedEvent{
+		TransactionID: t.ID,
+		Sender:        t.Sender,
+		Recipient:     t.Recipient,
+		Amount:        t.Amount,
 	}
 
 	payload, err := json.Marshal(event)
@@ -29,7 +30,7 @@ func CreateTransactionCreatedEvent(ctx context.Context, producer sarama.SyncProd
 		Topic:     PRODUCER_TOPIC,
 		Partition: int32(PARTITION),
 		Value:     sarama.ByteEncoder(payload),
-		Key:       sarama.StringEncoder(transaction.ID.String()),
+		Key:       sarama.StringEncoder(t.ID.String()),
 	}
 
 	_, _, err = producer.SendMessage(msg)

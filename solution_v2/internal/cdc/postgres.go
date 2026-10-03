@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"outbox-pattern-go/internal/outbox"
+	"outbox-pattern-go/solution_v2/internal/outbox"
 	"slices"
 	"time"
 

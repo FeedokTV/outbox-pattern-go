@@ -1,4 +1,4 @@
-package database
+package replication
 
 import (
 	"context"

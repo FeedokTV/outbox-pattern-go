@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"outbox-pattern-go/internal/cdc"
+	"outbox-pattern-go/solution_v2/internal/cdc"
 )
 
 // ==== Abstractions =====

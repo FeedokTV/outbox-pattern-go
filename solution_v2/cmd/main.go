@@ -7,11 +7,14 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"outbox-pattern-go/internal/cdc"
 	"outbox-pattern-go/internal/database"
 	"outbox-pattern-go/internal/kafka"
-	"outbox-pattern-go/internal/relay"
 	"outbox-pattern-go/internal/transaction"
+	"outbox-pattern-go/solution_v2/internal/cdc"
+	"outbox-pattern-go/solution_v2/internal/publisher"
+	"outbox-pattern-go/solution_v2/internal/relay"
+	"outbox-pattern-go/solution_v2/internal/replication"
+	"outbox-pattern-go/solution_v2/internal/service"
 	"syscall"
 	"time"
 	"uuid"
@@ -32,14 +35,14 @@ func runApp() error {
 	defer stop()
 
 	// Initialize database pool connection
-	pool, err := database.GetDatabasePool(ctx)
+	pool, err := database.NewPool(ctx)
 	if err != nil {
 		log.Fatalf("failed to create pool to database: %v", err)
 	}
 	defer pool.Close()
 
 	// Initialize connection for replication
-	replConn, err := database.GetDatabaseConnectionReplication(ctx)
+	replConn, err := database.NewReplConnection(ctx)
 	if err != nil {
 		log.Fatalf("failed to create connection for replication: %v", err)
 	}
@@ -54,7 +57,7 @@ func runApp() error {
 	}()
 
 	// Replication service
-	replService := database.NewPgReplicationService(ctx, replConn)
+	replService := replication.NewPgReplicationService(ctx, replConn)
 
 	err = replService.Initialize(ctx)
 	if err != nil {
@@ -83,7 +86,7 @@ func runApp() error {
 		}
 	}()
 
-	kafkaPublisher := kafka.NewPublisher(producer, "transactions")
+	kafkaPublisher := publisher.NewKafkaPublisher(producer, "transactions")
 
 	// Relay
 	pgRelay := relay.NewRelay(pgCDC, kafkaPublisher)
@@ -128,7 +131,7 @@ func bankingServiceExample(ctx context.Context, pool *pgxpool.Pool) error {
 		Amount:    1000,
 	}
 
-	if err = transaction.Create(
+	if err = service.CreateTransaction(
 		ctx,
 		pool,
 		transaction1,
@@ -148,7 +151,7 @@ func bankingServiceExample(ctx context.Context, pool *pgxpool.Pool) error {
 		Amount:    1000,
 	}
 
-	if err = transaction.Create(
+	if err = service.CreateTransaction(
 		ctx,
 		pool,
 		transaction2,

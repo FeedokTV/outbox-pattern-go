@@ -6,4 +6,5 @@ CREATE TABLE IF NOT EXISTS transactions (
     sended_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- For V2 --
 CREATE PUBLICATION transactions_cdc;

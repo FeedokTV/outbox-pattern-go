@@ -11,7 +11,7 @@ var (
 	connectionString = "postgresql://postgres:passpass1234@localhost:5432/bank-database"
 )
 
-func GetDatabaseConnectionReplication(ctx context.Context) (*pgconn.PgConn, error) {
+func NewReplConnection(ctx context.Context) (*pgconn.PgConn, error) {
 
 	connectionStringReplication := connectionString + "?replication=database"
 
@@ -23,7 +23,7 @@ func GetDatabaseConnectionReplication(ctx context.Context) (*pgconn.PgConn, erro
 	return conn, nil
 }
 
-func GetDatabasePool(ctx context.Context) (*pgxpool.Pool, error) {
+func NewPool(ctx context.Context) (*pgxpool.Pool, error) {
 	// Let the container name and port stay hardcodeds
 
 	pool, err := pgxpool.New(ctx, connectionString)
