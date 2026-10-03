@@ -83,8 +83,10 @@ func runApp() error {
 		}
 	}()
 
+	kafkaPublisher := kafka.NewPublisher(producer, "transactions")
+
 	// Relay
-	pgRelay := relay.NewRelay(pgCDC, producer, "transactions")
+	pgRelay := relay.NewRelay(pgCDC, kafkaPublisher)
 
 	// Two gorutines in error groups. First is relay, the second is independent process
 	// for example in second one we just create two transactions

@@ -3,7 +3,6 @@ package transaction
 import (
 	"context"
 	"fmt"
-	"outbox-pattern-go/internal/models"
 	"outbox-pattern-go/internal/outbox"
 
 	"github.com/jackc/pgx/v5"
@@ -17,13 +16,13 @@ func Create(ctx context.Context, pool *pgxpool.Pool, t Transaction) error {
 		}
 
 		msg, err := outbox.NewMessage(
-			models.TransactionCreatedType,
+			TransactionCreatedType,
 			t.ID.String(),
-			models.TransactionCreatedEvent{
+			TransactionCreatedEvent{
 				TransactionID: t.ID,
 				Sender:        t.Sender,
 				Recipient:     t.Recipient,
-				Amount:        int64(t.Amount),
+				Amount:        t.Amount,
 			},
 		)
 		if err != nil {

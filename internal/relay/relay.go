@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"io"
 	"outbox-pattern-go/internal/cdc"
-
-	"github.com/IBM/sarama"
 )
 
 // ==== Abstractions =====
@@ -16,19 +14,27 @@ type CDCSource interface {
 	Next(ctx context.Context) (*cdc.CDCEvent, error)
 }
 
+type Message struct {
+	Key   string
+	Value []byte
+}
+
+type MessagePublisher interface {
+	Publish(ctx context.Context, msg Message) error
+}
+
 // ===== Relay =====
 
 type Relay struct {
-	source   CDCSource
-	producer sarama.SyncProducer
-	topic    string
+	source    CDCSource
+	publisher MessagePublisher
+	topic     string
 }
 
-func NewRelay(source CDCSource, producer sarama.SyncProducer, topic string) *Relay {
+func NewRelay(source CDCSource, publisher MessagePublisher) *Relay {
 	return &Relay{
-		source:   source,
-		producer: producer,
-		topic:    topic,
+		source:    source,
+		publisher: publisher,
 	}
 }
 
@@ -54,13 +60,18 @@ func (r *Relay) Run(ctx context.Context) error {
 
 		fmt.Println("Got event from CDCSource with ID", event.ID)
 
-		msg := &sarama.ProducerMessage{
-			Topic: r.topic,
-			Key:   sarama.StringEncoder(event.ID),
-			Value: sarama.StringEncoder(event.Content),
+		// msg := &sarama.ProducerMessage{
+		// 	Topic: r.topic,
+		// 	Key:   sarama.StringEncoder(event.ID),
+		// 	Value: sarama.StringEncoder(event.Content),
+		// }
+
+		msg := Message{
+			Key:   event.ID,
+			Value: event.Content,
 		}
 
-		if _, _, err = r.producer.SendMessage(msg); err != nil {
+		if err = r.publisher.Publish(ctx, msg); err != nil {
 			fmt.Println("Error occured while sending message to Kafka", err)
 			return err
 		}

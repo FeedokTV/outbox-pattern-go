@@ -14,7 +14,7 @@ services:
       - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
     command: ["postgres", "-c", "wal_level=logical", "-c", "max_replication_slots=1", "-c", "max_wal_senders=2"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres passpass1234"]
       interval: 5s
       timeout: 5s
       retries: 5
