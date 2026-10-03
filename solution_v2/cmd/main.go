@@ -122,46 +122,19 @@ func runApp() error {
 }
 
 func bankingServiceExample(ctx context.Context, pool *pgxpool.Pool) error {
-	var err error
-
-	transaction1 := transaction.Transaction{
-		ID:        uuid.New(),
-		Sender:    "John Doe",
-		Recipient: "Bob Smith",
-		Amount:    1000,
+	transactions := []transaction.Transaction{
+		{ID: uuid.New(), Sender: "John Doe", Recipient: "Bob Smith", Amount: 1000},
+		{ID: uuid.New(), Sender: "Bob Smith", Recipient: "Aileen Wick", Amount: 1000},
 	}
 
-	if err = service.CreateTransaction(
-		ctx,
-		pool,
-		transaction1,
-	); err != nil {
-		if errors.Is(err, context.Canceled) {
-			return nil
+	for _, t := range transactions {
+		if err := service.CreateTransaction(ctx, pool, t); err != nil {
+			if errors.Is(err, context.Canceled) {
+				return nil
+			}
+
+			return fmt.Errorf("create transaction: %w", err)
 		}
-
-		return fmt.Errorf("create transaction: %w", err)
-
-	}
-
-	transaction2 := transaction.Transaction{
-		ID:        uuid.New(),
-		Sender:    "Bob Smith",
-		Recipient: "Aileen Wick",
-		Amount:    1000,
-	}
-
-	if err = service.CreateTransaction(
-		ctx,
-		pool,
-		transaction2,
-	); err != nil {
-		if errors.Is(err, context.Canceled) {
-			return nil
-		}
-
-		return fmt.Errorf("create transaction: %w", err)
-
 	}
 
 	return nil
