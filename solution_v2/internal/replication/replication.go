@@ -56,25 +56,6 @@ func (s *PgReplicationService) Initialize(ctx context.Context) error {
 	return nil
 }
 
-// func (s *PgReplicationService) initializePublication(ctx context.Context) error {
-// 	query := fmt.Sprintf("DROP PUBLICATION IF EXISTS %s;", s.publicationName)
-
-// 	res := s.conn.Exec(ctx, query)
-// 	_, err := res.ReadAll()
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	query = fmt.Sprintf("CREATE PUBLICATION %s FOR ALL TABLES;", s.publicationName)
-// 	res = s.conn.Exec(ctx, query)
-// 	_, err = res.ReadAll()
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
-
 func (s *PgReplicationService) createReplicationSlot(ctx context.Context, outputPlugin string, isTemporary bool) error {
 	if outputPlugin == "" {
 		return fmt.Errorf("output plugin is nil")

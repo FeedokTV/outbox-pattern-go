@@ -14,11 +14,11 @@ CREATE TABLE IF NOT EXISTS outbox (
     payload JSONB NOT NULL, -- full event envelope
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     locked_until TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP, -- relay lease: row is free once this is in the past
-    sent_at TIMESTAMPTZ -- NULL until the relay has published the event
+    sended_at TIMESTAMPTZ -- NULL until the relay has published the event
 );
 
 -- Relay only looks for unsent rows, so index just those
-CREATE INDEX IF NOT EXISTS outbox_unsent_idx ON outbox (id) WHERE sent_at IS NULL;
+CREATE INDEX IF NOT EXISTS outbox_unsent_idx ON outbox (id) WHERE sended_at IS NULL;
 
 -- For V2 --
 CREATE PUBLICATION transactions_cdc;

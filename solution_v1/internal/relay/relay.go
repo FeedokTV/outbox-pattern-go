@@ -88,7 +88,7 @@ func (r *Relay) processBatch(ctx context.Context) error {
 			return err
 		}
 
-		fmt.Println("Succesfully sent message to Kafka")
+		fmt.Println("Successfully sent message to Kafka")
 	}
 
 	return nil

@@ -18,9 +18,14 @@ import (
 type PostgresCDC struct {
 	conn *pgconn.PgConn
 
+	// We will use two slices
+	// pending - once COMMIT message handled we store events here during the transaction
+	// ready - for processed events, that have to be sent in broker
 	pending []*CDCEvent
 	ready   []*CDCEvent
 
+	// Current LSN (Log Sequence Number) - it's current offset position in WAL
+	// we move it after successfully processed message from slot
 	confirmedLSN pglogrepl.LSN
 
 	inTransaction bool
@@ -34,6 +39,7 @@ func NewPostgresCDC(conn *pgconn.PgConn) *PostgresCDC {
 
 func (pcdc *PostgresCDC) Next(ctx context.Context) (*CDCEvent, error) {
 	for {
+		// If we have processed messages - sent last one
 		if len(pcdc.ready) > 0 {
 			event := pcdc.ready[0]
 			pcdc.ready = pcdc.ready[1:]
@@ -45,6 +51,7 @@ func (pcdc *PostgresCDC) Next(ctx context.Context) (*CDCEvent, error) {
 			return nil, err
 		}
 
+		// Get message from slot
 		rawMsg, err := pcdc.conn.ReceiveMessage(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("receive WAL message: %w", err)
@@ -108,14 +115,17 @@ func (pcdc *PostgresCDC) processWALData(walData []byte) error {
 
 	switch logicalMessage := logicalMessage.(type) {
 	case *pglogrepl.BeginMessage:
+		// Begin of transaction
 		fmt.Println("Processing message: BEGIN")
 		if pcdc.inTransaction {
 			return errors.New("unexpected BEGIN")
 		}
 
+		// Set transaction state
 		pcdc.inTransaction = true
 		pcdc.pending = nil
 	case *pglogrepl.LogicalDecodingMessageV2:
+		// Message in transaction
 		fmt.Println("Processing message: MESSAGE")
 
 		if logicalMessage.Prefix != outbox.PREFIX {
@@ -130,17 +140,20 @@ func (pcdc *PostgresCDC) processWALData(walData []byte) error {
 			return errors.New("CDC message outside transaction")
 		}
 
+		// Expecting our outbox message
 		var msg outbox.Message
 		if err := json.Unmarshal(logicalMessage.Content, &msg); err != nil {
 			return fmt.Errorf("cannot decode outbox message content: %w", err)
 		}
 
+		// Put message in pending slice
 		pcdc.pending = append(pcdc.pending, &CDCEvent{
 			ID:      msg.AggregateID,
 			Content: logicalMessage.Content,
 		})
 
 	case *pglogrepl.CommitMessage:
+		// End of transaction
 		fmt.Println("Processing message: COMMIT")
 
 		if !pcdc.inTransaction {
@@ -149,6 +162,7 @@ func (pcdc *PostgresCDC) processWALData(walData []byte) error {
 
 		pcdc.inTransaction = false
 
+		// Get LSN end of current treansaction
 		endLSN := logicalMessage.TransactionEndLSN
 
 		if len(pcdc.pending) == 0 {
@@ -156,6 +170,10 @@ func (pcdc *PostgresCDC) processWALData(walData []byte) error {
 			return nil
 		}
 
+		// We need to move our LSN and sent it to Postgres
+		// So we taking last message and setting Acknowledgment function for it
+		// In Acknowledgment function we moving LSN on the end of
+		// current transaction
 		last := pcdc.pending[len(pcdc.pending)-1]
 
 		last.Ack = func(ctx context.Context) error {
@@ -164,6 +182,8 @@ func (pcdc *PostgresCDC) processWALData(walData []byte) error {
 			return err
 		}
 
+		// Move pending to ready
+		// Nothing is pending now
 		pcdc.ready = slices.Clone(pcdc.pending)
 		pcdc.pending = nil
 	}

@@ -33,9 +33,9 @@ func (s *PostgresStore) Claim(ctx context.Context, limit int, lease time.Duratio
 			SET locked_until = now() + make_interval(secs => $2)
 			WHERE id IN (
 				SELECT id FROM outbox
-				WHERE sent_at IS NULL
+				WHERE sended_at IS NULL
 				  AND locked_until < now()
-				ORDER BY id
+				ORDER BY created_at, id
 				LIMIT $1
 				FOR UPDATE SKIP LOCKED
 			)
@@ -61,7 +61,7 @@ func (s *PostgresStore) Claim(ctx context.Context, limit int, lease time.Duratio
 }
 
 func (s *PostgresStore) MarkSent(ctx context.Context, id uuid.UUID) error {
-	_, err := s.pool.Exec(ctx, `UPDATE outbox SET sent_at = now() WHERE id = $1`, id)
+	_, err := s.pool.Exec(ctx, `UPDATE outbox SET sended_at = now() WHERE id = $1`, id)
 	if err != nil {
 		return fmt.Errorf("mark outbox row %s as sent: %w", id, err)
 	}

@@ -60,12 +60,6 @@ func (r *Relay) Run(ctx context.Context) error {
 
 		fmt.Println("Got event from CDCSource with ID", event.ID)
 
-		// msg := &sarama.ProducerMessage{
-		// 	Topic: r.topic,
-		// 	Key:   sarama.StringEncoder(event.ID),
-		// 	Value: sarama.StringEncoder(event.Content),
-		// }
-
 		msg := Message{
 			Key:   event.ID,
 			Value: event.Content,
@@ -83,6 +77,6 @@ func (r *Relay) Run(ctx context.Context) error {
 			}
 		}
 
-		fmt.Println("Succesfully sent message to Kafka")
+		fmt.Println("Successfully sent message to Kafka")
 	}
 }
